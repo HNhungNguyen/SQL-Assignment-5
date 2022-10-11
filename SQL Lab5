@@ -1,0 +1,105 @@
+USE master
+GO
+IF EXISTS (select * from sys.databases where name='Lab11')
+DROP DATABASE Lab11
+GO
+CREATE DATABASE Lab11
+GO
+USE Lab11
+
+CREATE TABLE Customer(
+CustomerID int IDENTITY(101,1) PRIMARY KEY,--Mã khách hàng, là khóa chính của bảng, giá trị tự tăng
+CustomerName varchar(50), --Tên của khách hàng
+Address varchar(100), --Địa chỉ của khách hàng
+Phone varchar (12) --Số điện thoại của khách hàng
+)
+
+CREATE TABLE Book(
+BookCode int PRIMARY KEY,--Mã sách
+Category varchar(50), --Thể loại sách
+Author varchar(50), --Tên tác giả
+Publisher varchar(50), --Tên nhà xuất bản
+Title varchar(100), --Tiêu đề của cuốn sách
+Price int, --Giá bán của cuốn sách
+InStore int --Số lượng sách còn trong kho
+)
+DROP TABLE Book
+
+CREATE TABLE BookSold(
+BookSoldID int PRIMARY KEY,--Mã hóa đơn bán sách, là khóa chính của bảng BookSold
+CustomerID int, --Mã khách hàng, là khóa ngoại nối với bảng Customer
+BookCode int, --Mã sách, là khóa ngoại nối với bảng Book
+Date datetime, --Ngày bán sách
+Price int, --Giá sách tại thời điểm bán
+Amount int, --Số lượng sách đã bán
+	CONSTRAINT CustomerID FOREIGN KEY (CustomerID) references Customer(CustomerID) on delete cascade,
+	CONSTRAINT BookCode FOREIGN KEY (BookCode) references Book(BookCode) on delete cascade,
+)
+
+DROP TABLE BookSold
+
+--1. Chèn ít nhất 5 bản ghi vào bảng Books, 5 bản ghi vào bảng Customer và 10 bản ghi vào bảng BookSold.
+
+	INSERT INTO Customer values('Nhung','Cau Giay','0904588666');
+	INSERT INTO Customer values('Huong','Xuan Thuy','0985254282');
+	INSERT INTO Customer values('My','Nguyen Tuan','0904718101');
+	INSERT INTO Customer values('Nhat','Hoa Bang','0356123668');
+	INSERT INTO Customer values('Phong','Quan Hoa','0973330123');
+	
+	INSERT INTO Book values('233567799','Van hoc','Xuan Dieu','Canh dieu','Tuyen tap tho Xuan Dieu',150000,11);
+	INSERT INTO Book values('456621411','Van hoc','Ho Chi Minh','Nha Nam','Ban tuyen ngon doc lap',200000,5);
+	INSERT INTO Book values('456621136','Tin hoc','Nguyen Tuan','FPT','SQL Database 2019',220000,8);
+	INSERT INTO Book values('454421411','Vat ly','Tesla','Thanh nien','Giai phong dien tu truong',350000,20);
+	INSERT INTO Book values('291247723','Triet hoc','Mac-Lenin','BGD','Tu tuong XHCN',280000,16);
+	
+	INSERT INTO BookSold values(89003,'105','233567799','2022-07-06','210000',1);
+	INSERT INTO BookSold values(89001,'105','456621411','2022-05-12','250000',2);
+	INSERT INTO BookSold values(89004,'104','233567799','2022-09-23','210000',1);
+	INSERT INTO BookSold values(89005,'103','291247723','2022-09-23','340000',2);
+	INSERT INTO BookSold values(89009,'103','454421411','2022-09-23','430000',2);
+	INSERT INTO BookSold values(89006,'103','291247723','2022-09-23','340000',3);
+	INSERT INTO BookSold values(89002,'103','233567799','2022-05-12','200000',3);
+	INSERT INTO BookSold values(89007,'102','233567799','2022-09-23','210000',2);
+	INSERT INTO BookSold values(89008,'101','456621136','2022-09-23','280000',1);
+	INSERT INTO BookSold values(89010,'101','454421411','2022-09-23','280000',1);
+
+	SELECT * FROM Customer
+	SELECT * FROM Book
+	SELECT * FROM BookSold
+
+--2. Tạo một khung nhìn chứa danh sách các cuốn sách (BookCode, Title, Price) kèm theo số lượng đã bán được của mỗi cuốn sách.
+--Gợi ý: Trường Amout của bảng BookSold chứa số lượng sách đã bán cho một khách hàng.
+
+	CREATE VIEW DS_booksold AS
+	SELECT Book.BookCode, Book.Title, BookSold.Price, BookSold.Amount FROM Book 
+	FULL JOIN BookSold ON Book.BookCode=BookSold.BookCode
+
+SELECT * FROM V_Book
+
+--3. Tạo một khung nhìn chứa danh sách các khách hàng (CustomerID, CustomerName, Address) kèm theo số lượng các cuốn sách mà khách hàng đó đã mua.
+
+CREATE VIEW V_CustomerInfo AS
+SELECT Customer.CustomerID, Customer.CustomerName, Customer.Address, Book.Title, BookSold.Amount FROM Customer
+INNER JOIN BookSold ON Customer.CustomerID = BookSold.CustomerID
+LEFT JOIN Book on Book.BookCode = BookSold.BookCode
+
+SELECT * FROM V_CustomerInfo
+
+--4. Tạo một khung nhìn chứa danh sách các khách hàng (CustomerID, CustomerName, Address) đã mua sách vào tháng trước, kèm theo tên các cuốn sách mà khách hàng đã mua.
+
+CREATE VIEW V_Customer AS
+SELECT Customer.CustomerId, Customer.CustomerName, Customer.Address, Book.Title, BookSold.Amount FROM Customer
+INNER JOIN BookSold ON Customer.CustomerID = BookSold.CustomerID
+LEFT JOIN Book ON Book.BookCode = BookSold.BookCode WHERE (DATEDIFF(MONTH,BookSold.Date,getdate())>1)
+
+
+SELECT * FROM V_Customer
+--5. Tạo một khung nhìn chứa danh sách các khách hàng kèm theo tổng tiền mà mỗi khách hàng đã chicho việc mua sách.
+--Gợi ý: Tiền mỗi lần mua = Giá mỗi cuốn sách * Số lượng sách đã mua.
+
+CREATE VIEW V_SalesCustomerDetail AS
+SELECT Customer.CustomerName, sum(BookSold.Price*BookSold.Amount) as [Total Sale] FROM Customer
+FULL JOIN BookSold ON Customer.CustomerID = BookSold.CustomerID
+GROUP BY Customer.CustomerName
+
+SELECT * FROM V_SalesCustomerDetail
