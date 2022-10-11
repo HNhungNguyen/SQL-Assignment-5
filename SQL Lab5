@@ -70,7 +70,7 @@ DROP TABLE BookSold
 --2. Tạo một khung nhìn chứa danh sách các cuốn sách (BookCode, Title, Price) kèm theo số lượng đã bán được của mỗi cuốn sách.
 --Gợi ý: Trường Amout của bảng BookSold chứa số lượng sách đã bán cho một khách hàng.
 
-	CREATE VIEW DS_booksold AS
+	CREATE VIEW V_Book AS
 	SELECT Book.BookCode, Book.Title, BookSold.Price, BookSold.Amount FROM Book 
 	FULL JOIN BookSold ON Book.BookCode=BookSold.BookCode
 
